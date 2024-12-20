@@ -11,15 +11,6 @@ executors:
     working_directory: /tmp/project
 
 commands:
-  setup-docker-image-env:
-    steps:
-      - run:
-          name: Setup environment variables
-          command: |
-            echo 'export AWS_ECR_ACCOUNT_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"' >> $BASH_ENV
-            echo 'export DOCKER_REPOSITORY_PHP="${AWS_ECR_ACCOUNT_URL}/${AWS_ECR_REPO_NAME}/php"' >> $BASH_ENV
-            echo 'export DOCKER_IMAGE_REF_PHP="${DOCKER_REPOSITORY_PHP}:latest"' >> $BASH_ENV
-
   docker-load:
     parameters:
       path:
@@ -52,7 +43,6 @@ jobs:
             - v7-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
             - v7-docker_build-
       - setup_remote_docker
-      - setup-docker-image-env
       - docker-load:
           path: "docker-images/php.tar.gz"
       - run:
