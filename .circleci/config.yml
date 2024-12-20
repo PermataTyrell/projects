@@ -46,14 +46,6 @@ jobs:
       - docker-load:
           path: "docker-images/php.tar.gz"
       - run:
-          name: Build image
-          command: |
-            docker build -t $DOCKER_IMAGE_REF_PHP --target prod php-app
-      - run:
-          name: Test image
-          command: |
-            docker run $DOCKER_IMAGE_REF_PHP php -v
-      - run:
           name: Save image to an archive
           command: |
             mkdir -p docker-images
