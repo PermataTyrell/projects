@@ -1,0 +1,17 @@
+# Common
+.DS_Store
+/tags
+/nbproject/
+.project
+/.settings/
+*~
+*\.swp
+*.iml
+!.gitkeep
+
+# JetBrains IDEs
+# Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+.idea
+!.idea/dataSources.xml
+!.idea/php.xml
+!.idea/sqldialects.xml
