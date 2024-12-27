@@ -1,0 +1,9 @@
+parameters:
+    bootstrapFiles:
+        - config/paths.php
+    level: 8
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - src/
+    excludePaths:
+        - src/Console/Installer.php

@@ -1,0 +1,86 @@
+version: 2.1
+
+executors:
+  aws-ecr:
+    docker:
+      - image: cimg/python:3.12.2
+
+jobs:
+  docker_build:
+    executor: aws-ecr
+    working_directory: ~/project/docker
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: create deps_checksum
+          command: find . -type f | xargs cat > ~/deps_checksum
+      - restore_cache:
+          keys:
+            - v1-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
+            - v1-docker_build-
+      - setup_remote_docker
+      - run:
+          name: Save image to an archive
+          command: |
+            mkdir -p docker-images
+          working_directory: ~/project/docker
+      - save_cache:
+          key: v1-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
+          paths:
+            - ~/project/docker/docker-images
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - docker-images
+
+  php:
+    working_directory: /tmp/project
+    docker:
+      - image: cimg/base:2024.02
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: workspace
+      - restore_cache:
+          keys:
+            - v1-php-{{ checksum "app/composer.lock" }}
+            - v1-php-
+      - run:
+          name: Setup environment variables
+          command: |
+            echo 'export COMPOSE_FILE=docker-compose.circleci.yml' >> $BASH_ENV
+      - run: docker compose up -d
+      - run:
+          name: Install dockerize
+          command: |
+            docker compose exec --user root php-app sh -c "
+            curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz &&
+            tar -C /usr/local/bin --no-same-owner -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz &&
+            rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+            "
+          environment:
+            DOCKERIZE_VERSION: v0.6.1
+      - run:
+          name: Wait for redis & db
+          command: docker compose exec php-app dockerize -wait tcp://redis:6379 -wait tcp://mysql:3306 -timeout 1m
+      - run: "docker cp app/. php-app:/var/www/html"
+      - run:
+          name: composer install
+          command: docker compose exec php-app composer install --no-interaction --prefer-dist --optimize-autoloader
+      - run: docker compose exec php-app composer check
+      - run: "docker cp php-app:/var/www/html/vendor app/"
+      - save_cache:
+          key: v1-php-{{ checksum "app/composer.lock" }}
+          paths:
+            - app/vendor
+
+workflows:
+  version: 2
+  deploy:
+    jobs:
+      - docker_build
+      - php:
+          requires:
+            - docker_build
