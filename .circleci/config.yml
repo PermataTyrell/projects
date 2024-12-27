@@ -5,27 +5,9 @@ executors:
     docker:
       - image: cimg/python:3.12.2
 
-commands:
-  docker-load:
-    parameters:
-      path:
-        type: string
-    steps:
-      - run:
-          name: Load cached image
-          command: |
-            if test -f << parameters.path >>; then
-              gunzip -c << parameters.path >> | docker load
-              docker images
-            fi
-
 jobs:
   docker_build:
-    parameters:
-      executor:
-        type: executor
-        default: aws-ecr
-    executor: << parameters.executor >>
+    executor: aws-ecr
     working_directory: ~/project/docker
     steps:
       - checkout:
@@ -35,18 +17,16 @@ jobs:
           command: find . -type f | xargs cat > ~/deps_checksum
       - restore_cache:
           keys:
-            - v7-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
-            - v7-docker_build-
+            - v1-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
+            - v1-docker_build-
       - setup_remote_docker
-      - docker-load:
-          path: "docker-images/php.tar.gz"
       - run:
           name: Save image to an archive
           command: |
             mkdir -p docker-images
           working_directory: ~/project/docker
       - save_cache:
-          key: v7-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
+          key: v1-docker_build-{{ checksum "~/project/.circleci/config.yml" }}-{{ checksum "~/deps_checksum" }}
           paths:
             - ~/project/docker/docker-images
       - persist_to_workspace:
@@ -63,18 +43,15 @@ jobs:
       - setup_remote_docker
       - attach_workspace:
           at: workspace
-      - docker-load:
-          path: "workspace/docker-images/php.tar.gz"
       - restore_cache:
           keys:
-            - v7-php-{{ checksum "app/composer.lock" }}
-            - v7-php-
+            - v1-php-{{ checksum "app/composer.lock" }}
+            - v1-php-
       - run:
           name: Setup environment variables
           command: |
             echo 'export COMPOSE_FILE=docker-compose.circleci.yml' >> $BASH_ENV
       - run: docker compose up -d
-      - run: docker compose ps
       - run:
           name: Install dockerize
           command: |
@@ -86,29 +63,22 @@ jobs:
           environment:
             DOCKERIZE_VERSION: v0.6.1
       - run:
-          name: Wait for db
+          name: Wait for redis & db
           command: docker compose exec php-app dockerize -wait tcp://redis:6379 -wait tcp://mysql:3306 -timeout 1m
       - run: "docker cp app/. php-app:/var/www/html"
       - run:
           name: composer install
           command: docker compose exec php-app composer install --no-interaction --prefer-dist --optimize-autoloader
-      #- run:
-      #    name: DBのマイグレーションを行う。
-      #    command: |
-      #      docker compose exec php-app bin/migrate
-      #- run: docker compose exec php-app composer check
-      - run: docker compose exec php-app composer cs-check
-      - run: docker compose exec php-app composer stan
-      - run: docker compose exec php-app composer test
+      - run: docker compose exec php-app composer check
       - run: "docker cp php-app:/var/www/html/vendor app/"
       - save_cache:
-          key: v7-php-{{ checksum "app/composer.lock" }}
+          key: v1-php-{{ checksum "app/composer.lock" }}
           paths:
             - app/vendor
 
 workflows:
   version: 2
-  untag_deploy:
+  deploy:
     jobs:
       - docker_build
       - php:
