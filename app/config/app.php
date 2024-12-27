@@ -152,13 +152,6 @@ return [
             'url' => env('CACHE_SESSION_URL', null),
             'duration' => '+31 days',
         ],
-
-        'sequence' => [
-            'className' => RedisEngine::class,
-            'prefix' => 'myapp_sequence_',
-            'url' => env('CACHE_SEQUENCE_URL', null),
-            'duration' => '+1 years',
-        ],
     ],
 
     /*

@@ -12,14 +12,12 @@ services:
       - minio-create-buckets
     environment:
       CACHE_SESSION_URL: "redis://redis"
-      CACHE_SEQUENCE_URL: "redis://redis"
-      WEB_DOCUMENT_ROOT: "/app/webroot"
       DEBUG: "true"
       DATABASE_URL: "mysql://tutorials:sup3r_s3cr3t@mysql/tutorials"
       PHP_IDE_CONFIG: "serverName=tutorial"
 
   mysql:
-    image: mysql:8.0
+    image: cimg/mysql:8.0
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
@@ -27,7 +25,7 @@ services:
       MYSQL_USER: "tutorials"
       MYSQL_PASSWORD: "sup3r_s3cr3t"
       MYSQL_DATABASE: "tutorials"
-    command: mysqld --character-set-server=utf8 --init-connect='SET NAMES UTF8;' --bind-address=0.0.0.0
+    command: mysqld --character-set-server=utf8 --init-connect='SET NAMES UTF8;'
     ports:
       - "3306:3306"
 
@@ -41,8 +39,10 @@ services:
       MINIO_ROOT_PASSWORD: EXAMPLESECRETKEY/EXAMPLESECRETKEY/EXAMPL
     ports:
       - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio-data:/data
+    command: minio server --console-address ":9001" /data
 
   minio-create-buckets:
     image: minio/mc

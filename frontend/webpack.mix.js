@@ -3,7 +3,7 @@ const glob = require("glob");
 const ESLintPlugin = require("eslint-webpack-plugin");
 const StyleLintPlugin = require("stylelint-webpack-plugin");
 
-const webPath = "../app/webroot";
+const webPath = "build";
 mix.setPublicPath(webPath);
 
 mix.js("src/js/common.js", `${webPath}/js/common.js`);

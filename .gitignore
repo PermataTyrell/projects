@@ -15,3 +15,7 @@
 !.idea/dataSources.xml
 !.idea/php.xml
 !.idea/sqldialects.xml
+
+# Front End
+build/
+node_modules/

@@ -75,11 +75,6 @@ jobs:
             echo 'export COMPOSE_FILE=docker-compose.circleci.yml' >> $BASH_ENV
       - run: docker compose up -d
       - run: docker compose ps
-      - run: docker compose logs mysql
-      - run:
-          name: test
-          command: |
-            docker compose exec mysql mysql -h localhost -u tutorials -p'sup3r_s3cr3t' -e "SHOW DATABASES;"
       - run:
           name: Install dockerize
           command: |
@@ -90,6 +85,9 @@ jobs:
             "
           environment:
             DOCKERIZE_VERSION: v0.6.1
+      - run:
+          name: Wait for db
+          command: docker compose exec php-app dockerize -wait tcp://redis:6379 -wait tcp://mysql:3306 -timeout 1m
       - run: "docker cp app/. php-app:/var/www/html"
       - run:
           name: composer install
